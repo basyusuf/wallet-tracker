@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Client, TextChannel, GatewayIntentBits } from 'discord.js';
+import { Client, TextChannel, GatewayIntentBits, Message } from 'discord.js';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
@@ -16,7 +16,7 @@ export class DiscordProvider {
             Logger.log('Discord bot connected.');
             this.consume();
         } catch (error) {
-            Logger.error('Error while connecting to Discord:', error);
+            Logger.error('Error while connecting to Discord:', JSON.stringify(error, Object.getOwnPropertyNames(error)));
         }
     }
 

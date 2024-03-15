@@ -114,12 +114,11 @@ export class TransactionSniffer {
         let timeStamp = new Date().toISOString();
         const processed_value = this.round((Number(decodedLog.value)) * 10 ** (-tokenInfo.decimals), 2)
         return `
-        \n:green_square: DAO-DAO
+        \n:green_square: **${'DAO'}**
         \nDiscovered a New Transaction! 
-        \nTime: ${timeStamp} \nSender: ${decodedLog.from} \nReceiver: ${decodedLog.to} \nValue: ${processed_value} \nTICKER: ${tokenInfo.symbol}
+        \nToken Address: **${log.address}** \nTime: ${timeStamp} \nSender: ${decodedLog.from} \nReceiver: ${decodedLog.to} \nValue: ${processed_value} \nTICKER: ${tokenInfo.symbol}
         \nTransaction Details
-        https://snowtrace.io/tx/${log.transactionHash}
-        https://snowscan.xyz/tx/${log.transactionHash}`;
+        \n\`https://snowtrace.io/tx/${log.transactionHash}\`\n\`https://snowscan.xyz/tx/${log.transactionHash}\``;
     }
 
     round(num, decimal) {
