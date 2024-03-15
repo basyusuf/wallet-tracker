@@ -4,6 +4,7 @@ import Web3Type from 'web3';
 import { Subscription } from 'web3-core-subscriptions';
 import { Log } from 'web3-core';
 import { ConfigService } from '@nestjs/config';
+import { DiscordProvider } from '../discord/discord.provider';
 import { ERC20 } from '../web3/abi';
 import { TokenInfo } from '../interfaces/token.interface';
 
@@ -17,7 +18,7 @@ export class TransactionSniffer {
     tokenMap: TokenInfo = {};
     abiMap: Map<string, any> = new Map();
 
-    constructor(private readonly configService: ConfigService) {
+    constructor(private readonly configService: ConfigService, private readonly discordProvider: DiscordProvider) {
         this.socketNode = new Web3(configService.get<string>('SOCKET_NODE_URL'));
         this.webNode = new Web3(configService.get<string>('WEB_NODE_URL'));
         this.logOptions = {
@@ -78,7 +79,7 @@ export class TransactionSniffer {
             if (flag) {
                 await this.addTokenPropertiesIfNotExistsInMap(log.address);
                 const message = this.generateMessage(log, decodedLog, this.tokenMap[log.address]);
-                Logger.log(message);
+                this.discordProvider.sendMessage(this.discordProvider.getTargetChannelId(), message)
             }
         } catch (err) {
             return;
@@ -113,11 +114,12 @@ export class TransactionSniffer {
         let timeStamp = new Date().toISOString();
         const processed_value = this.round((Number(decodedLog.value)) * 10 ** (-tokenInfo.decimals), 2)
         return `
-        \n:person_curly_hair: DAO-DAO
-        \nDiscovered a New Transaction!
-        \nTime: ${timeStamp} \nSender: ${decodedLog.from} \nReceiver: ${decodedLog.to} \nValue: ${processed_value} \nTICKER: ${tokenInfo.symbol} 
-        \nhttps://snowtrace.io/tx/${log.transactionHash}
-        \nhttps://snowscan.xyz/tx/${log.transactionHash}`;
+        \n:green_square: DAO-DAO
+        \nDiscovered a New Transaction! 
+        \nTime: ${timeStamp} \nSender: ${decodedLog.from} \nReceiver: ${decodedLog.to} \nValue: ${processed_value} \nTICKER: ${tokenInfo.symbol}
+        \nTransaction Details
+        https://snowtrace.io/tx/${log.transactionHash}
+        https://snowscan.xyz/tx/${log.transactionHash}`;
     }
 
     round(num, decimal) {

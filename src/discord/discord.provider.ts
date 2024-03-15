@@ -23,7 +23,7 @@ export class DiscordProvider {
     async consume() {
         this.client.on('ready', async () => {
             Logger.log(`Logged in as ${this.client.user.tag}!`);
-            await this.sendMessage(this.configService.get<string>('TARGET_CHANNEL_ID'), `:green_circle: Wallet tracker started \nTimestamp: [${new Date().toISOString()}]`);
+            await this.sendMessage(this.getTargetChannelId(), `:green_circle: Wallet tracker started \nTimestamp: [${new Date().toISOString()}]`);
         });
     }
 
@@ -36,12 +36,16 @@ export class DiscordProvider {
             }
             if (channel.isTextBased()) {
                 await (channel as TextChannel).send(message);
-                Logger.log('Message sent to Discord successfully');
+                Logger.log('Message sent to Discord successfully. Message:', message);
             } else {
                 Logger.error(`Channel with ID ${channelId} is not a text channel.`);
             }
         } catch (error) {
             Logger.error('Error while sending message to Discord:', error);
         }
+    }
+
+    getTargetChannelId() {
+        return this.configService.get<string>('TARGET_CHANNEL_ID');
     }
 }
