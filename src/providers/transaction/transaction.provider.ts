@@ -5,8 +5,10 @@ import { Subscription } from 'web3-core-subscriptions';
 import { Log } from 'web3-core';
 import { ConfigService } from '@nestjs/config';
 import { DiscordProvider } from '../discord/discord.provider';
-import { ERC20 } from '../web3/abi';
-import { TokenInfo } from '../interfaces/token.interface';
+import { ERC20 } from '../../web3/abi';
+import { TokenInfo } from '../../interfaces/token.interface';
+import { WalletsDataAccess } from '../../wallets/wallets.data-access';
+import { WalletsEntity } from '../../wallets/entities/wallet.entity';
 
 @Injectable()
 export class TransactionSniffer {
@@ -16,9 +18,10 @@ export class TransactionSniffer {
     subscription: Subscription<Log>;
     logOptions: any;
     tokenMap: TokenInfo = {};
+    targetWallets: WalletsEntity[];
     abiMap: Map<string, any> = new Map();
 
-    constructor(private readonly configService: ConfigService, private readonly discordProvider: DiscordProvider) {
+    constructor(private readonly configService: ConfigService, private readonly discordProvider: DiscordProvider, private readonly walletDataAccess: WalletsDataAccess) {
         this.socketNode = new Web3(configService.get<string>('SOCKET_NODE_URL'));
         this.webNode = new Web3(configService.get<string>('WEB_NODE_URL'));
         this.logOptions = {
@@ -27,15 +30,22 @@ export class TransactionSniffer {
         };
     }
 
-    initConfig() {
+    async initConfig() {
         Logger.log('Transaction config initialize...');
         this.generateAbiMap();
     }
 
-    startSniffing() {
+    async refreshUser(){
+        Logger.log('Refresh user started');
+        this.targetWallets = await this.walletDataAccess.findAll();
+        Logger.log(`Transaction config completed. Wallet count: ${this.targetWallets.length}`);
+    }
+
+    async startSniffing() {
         try {
-            this.initConfig();
-            Logger.log('Transaction Sniffer started.');
+            await this.refreshUser();
+            await this.initConfig();
+            Logger.log('Transaction Sniffer started');
             this.subscription = this.socketNode.eth.subscribe('logs', this.logOptions, (err, res) => {
                 if (err) console.error(err);
             });
@@ -87,9 +97,13 @@ export class TransactionSniffer {
     }
 
     private async isAddressInWatchlist(log: { [key: string]: string }) {
-        if (!(this.includeDeadList(log.from) || this.includeDeadList(log.to)))
+        if (!(this.includeDeadList(log.from) || this.includeDeadList(log.to)) && this.checkOnList(log.to))
             return true;
         return false;
+    }
+
+    private checkOnList(address: string) {
+        return this.targetWallets.find(x => x.wallet_address === address);
     }
 
     private async addTokenPropertiesIfNotExistsInMap(tokenAddress: string) {
